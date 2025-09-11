@@ -14,4 +14,4 @@ RUN npm install
 COPY . .
 
 # Inicia a aplicação
-CMD ["node", "Script.js"]
+CMD ["node", "index.js"]
