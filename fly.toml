@@ -1,0 +1,15 @@
+
+app = "AutoPost"
+primary_region = "gru" # Se estiver no Brasil, use "gru" (São Paulo)
+
+[build]
+  image = ""
+
+[processes]
+  app = "node index.js"
+
+[checks]
+  [checks.alive]
+    type = "process"
+    interval = "30s"
+    timeout = "5s"

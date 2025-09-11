@@ -2,12 +2,12 @@ const { Api, TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const fs = require('fs');
 
-const apiId = parseInt(process.env.API_ID);
-const apiHash = process.env.API_HASH;
+const apiId = parseInt(process.env.API_ID || '21117228');
+const apiHash = process.env.API_HASH || '1d7a0af6fbdafe916ac803e444bc2100';
 const stringSession = new StringSession(process.env.TELEGRAM_SESSION || "");
 
-const sourceChannelId = parseInt(process.env.SOURCE_CHANNEL_ID);
-const destinationChannelId = parseInt(process.env.DESTINATION_CHANNEL_ID);
+const sourceChannelId = parseInt(process.env.SOURCE_CHANNEL_ID || '-1002631368556');
+const destinationChannelId = parseInt(process.env.DESTINATION_CHANNEL_ID || '-1002258297029');
 
 const lastMessageIdFile = 'last_message_id.txt';
 
