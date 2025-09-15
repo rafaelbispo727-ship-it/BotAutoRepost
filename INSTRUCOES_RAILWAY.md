@@ -16,7 +16,7 @@
    - Digite seu número de telefone (com código do país, ex: +5511999999999)
    - Digite o código que receber no Telegram
    - Se tiver 2FA ativado, digite sua senha
-   - **COPIE** a string `TELEGRAM_SESSION` que aparecer
+   - **COPIE** a StringSession que aparecer (será usada na variável `STRING_SESSION`)
 
 ## Passo 2: Configurar no Railway
 
@@ -27,23 +27,24 @@
    - `API_HASH`: 1d7a0af6fbdafe916ac803e444bc2100
    - `SOURCE_CHANNEL_ID`: -1002631368556
    - `DESTINATION_CHANNEL_ID`: -1002258297029
-   - `TELEGRAM_SESSION`: [cole a string que você copiou no passo 1]
+   - `STRING_SESSION`: [cole a StringSession que você copiou no passo 1]
 
 ## Passo 3: Deploy
 
-1. **Faça o deploy** - o Railway vai usar o Dockerfile automaticamente
-2. **Verifique os logs** para confirmar que está funcionando
-3. **Pronto!** Sua aplicação vai rodar 24/7 no Railway
+1. **Start Command**: use `npm start` (executa `index.js`)
+2. **Faça o deploy**
+3. **Verifique os logs** para confirmar que está funcionando
+4. **Pronto!** Sua aplicação vai rodar 24/7 no Railway
 
 ## ⚠️ Importante
 
 - A sessão do Telegram é válida por tempo indeterminado
 - Se precisar renovar, execute novamente o `npm run generate:session`
-- Mantenha suas credenciais seguras e não compartilhe a `TELEGRAM_SESSION`
+- Mantenha suas credenciais seguras e não compartilhe a `STRING_SESSION`
 
 ## 🔧 Troubleshooting
 
 Se der erro no Railway:
 1. Verifique se todas as variáveis de ambiente estão configuradas
-2. Confirme se a `TELEGRAM_SESSION` está correta
+2. Confirme se a `STRING_SESSION` está correta
 3. Verifique os logs do Railway para mais detalhes

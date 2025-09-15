@@ -2,12 +2,16 @@ const { Api, TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const fs = require('fs');
 
-const apiId = parseInt(process.env.API_ID || '21117228');
-const apiHash = process.env.API_HASH || '1d7a0af6fbdafe916ac803e444bc2100';
-const stringSession = new StringSession(process.env.TELEGRAM_SESSION || "");
+// Substitua com suas credenciais
+const apiId = 21117228; // Seu api_id
+const apiHash = '1d7a0af6fbdafe916ac803e444bc2100'; // Seu api_hash
 
-const sourceChannelId = parseInt(process.env.SOURCE_CHANNEL_ID || '-1002631368556');
-const destinationChannelId = parseInt(process.env.DESTINATION_CHANNEL_ID || '-1002258297029');
+// Usa a StringSession que você vai salvar no Railway
+const stringSession = new StringSession(process.env.STRING_SESSION);
+
+// IDs dos canais
+const sourceChannelId = -1002631368556; // ID do canal de origem
+const destinationChannelId = -1002258297029; // ID do canal de destino
 
 const lastMessageIdFile = 'last_message_id.txt';
 
@@ -17,18 +21,19 @@ async function main() {
     connectionRetries: 5,
   });
 
-  await client.start({}); 
+  await client.start();
 
-  console.log("Conectado! O bot está rodando e vai repostar a cada 10 minutos.");
+  console.log("✅ Conectado! O bot está rodando e vai repostar a cada 30 segundos.");
 
+  // Inicia o processo de repostagem
   setInterval(async () => {
     await repostNextMedia(client);
-  }, 10 * 60 * 1000); // 10 minutos
+  }, 30 * 1000); // 30 segundos (ajuste se quiser mais tempo)
 }
 
 async function repostNextMedia(client) {
   try {
-    let lastProcessedId = 0;
+    let lastProcessedId = 999999999;
     if (fs.existsSync(lastMessageIdFile)) {
       const fileContent = fs.readFileSync(lastMessageIdFile, 'utf8');
       if (fileContent) {
@@ -37,42 +42,63 @@ async function repostNextMedia(client) {
     }
 
     const messages = await client.getMessages(sourceChannelId, {
-      limit: 1, 
-      minId: lastProcessedId + 1
+      limit: 1,
+      maxId: lastProcessedId - 1
     });
 
     if (messages.length === 0) {
-      console.log("Não há novas mídias para repostar.");
+      console.log("Não há mais mídias para repostar.");
       return;
     }
 
     const message = messages[0];
+    const media = message.media;
+    const caption = message.message;
+    const entities = message.entities || [];
 
-    // Verifica se a mensagem tem mídia
-    if (!message.media) {
-      console.log("A próxima mensagem não contém mídia. Pulando...");
+    if (!media) {
+      console.log("Mensagem sem mídia, pulando...");
       fs.writeFileSync(lastMessageIdFile, message.id.toString());
       return;
     }
-    
-    // Extrai o texto da legenda e as entidades (incluindo emojis)
-    const caption = message.message;
-    const entities = message.entities;
 
-    console.log(`Repostando mídia com ID ${message.id}...`);
+    // Tenta copiar a mensagem com formatação
+    try {
+      console.log("Copiando mensagem...");
+      await client.invoke(new Api.messages.ForwardMessages({
+        fromPeer: sourceChannelId,
+        id: [message.id],
+        toPeer: destinationChannelId,
+        dropAuthor: false,
+        dropMediaCaptions: false,
+        silent: false,
+      }));
+      console.log("✅ Mídia copiada com sucesso!");
+    } catch (copyError) {
+      console.log("❌ CopyMessage falhou, tentando fallback...");
 
-    // Envia a mídia com a legenda e suas entidades
-    await client.sendMessage(destinationChannelId, {
-      file: message.media, // O objeto de mídia é copiado diretamente
-      message: caption, // O texto da legenda
-      entities: entities, // As entidades que contêm as informações de formatação, links e emojis
-    });
+      try {
+        const messageParams = {
+          file: media,
+          message: caption || ""
+        };
 
-    console.log(`Mídia repostada com sucesso!`);
+        if (entities && entities.length > 0) {
+          messageParams.entities = entities;
+        }
+
+        await client.sendMessage(destinationChannelId, messageParams);
+        console.log("✅ Mídia enviada via sendMessage!");
+      } catch (sendError) {
+        console.error("❌ Falha total:", sendError.message);
+        throw sendError;
+      }
+    }
+
     fs.writeFileSync(lastMessageIdFile, message.id.toString());
 
   } catch (error) {
-    console.error("Ocorreu um erro:", error);
+    console.error("Erro no repost:", error);
   }
 }
 
