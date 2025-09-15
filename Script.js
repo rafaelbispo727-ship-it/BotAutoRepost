@@ -1,17 +1,15 @@
-
-
-
 const { Api, TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const fs = require('fs');
-const input = require('input');
 
-// Substitua com suas credenciais e IDs dos canais
+// Substitua com suas credenciais
 const apiId = 21117228; // Seu api_id
 const apiHash = '1d7a0af6fbdafe916ac803e444bc2100'; // Seu api_hash
-// Se você já tem a string da sessão, cole aqui. Se não, deixe ""
-const stringSession = new StringSession(""); 
 
+// Usa a StringSession que você vai salvar no Railway
+const stringSession = new StringSession(process.env.STRING_SESSION);
+
+// IDs dos canais
 const sourceChannelId = -1002631368556; // ID do canal de origem
 const destinationChannelId = -1002258297029; // ID do canal de destino
 
@@ -23,24 +21,19 @@ async function main() {
     connectionRetries: 5,
   });
 
-  await client.start({
-    phoneNumber: async () => await input.text("Por favor, digite seu número de telefone: "),
-    password: async () => await input.text("Por favor, digite sua senha de verificação de duas etapas: "),
-    phoneCode: async () => await input.text("Por favor, digite o código que você recebeu no Telegram: "),
-    onError: (err) => console.log(err),
-  });
+  await client.start();
 
-  console.log("Conectado! O bot está rodando e vai repostar a cada 10 minutos.");
+  console.log("✅ Conectado! O bot está rodando e vai repostar a cada 30 segundos.");
 
-  // Inicia o processo de repostagem a cada 10 minutos
+  // Inicia o processo de repostagem
   setInterval(async () => {
     await repostNextMedia(client);
-  }, 30 * 1000); // 10 minutos em milissegundos
+  }, 30 * 1000); // 30 segundos (ajuste se quiser mais tempo)
 }
 
 async function repostNextMedia(client) {
   try {
-    let lastProcessedId = 999999999; // Valor inicial grande
+    let lastProcessedId = 999999999;
     if (fs.existsSync(lastMessageIdFile)) {
       const fileContent = fs.readFileSync(lastMessageIdFile, 'utf8');
       if (fileContent) {
@@ -49,9 +42,10 @@ async function repostNextMedia(client) {
     }
 
     const messages = await client.getMessages(sourceChannelId, {
-      limit: 1, 
+      limit: 1,
       maxId: lastProcessedId - 1
     });
+
     if (messages.length === 0) {
       console.log("Não há mais mídias para repostar.");
       return;
@@ -61,21 +55,16 @@ async function repostNextMedia(client) {
     const media = message.media;
     const caption = message.message;
     const entities = message.entities || [];
-    
-    console.log("Legenda:", caption);
-    console.log("Entidades:", entities);
-    console.log("Número de entidades:", entities.length);
 
     if (!media) {
-      console.log("A próxima mensagem não contém mídia. Pulando para a anterior...");
-      // Se não tem mídia, salva o ID para não processar novamente e avança
+      console.log("Mensagem sem mídia, pulando...");
       fs.writeFileSync(lastMessageIdFile, message.id.toString());
       return;
     }
 
-    // MÉTODO PRINCIPAL: CopyMessage via API (preserva 100% da formatação)
+    // Tenta copiar a mensagem com formatação
     try {
-      console.log("Copiando mensagem com formatação preservada...");
+      console.log("Copiando mensagem...");
       await client.invoke(new Api.messages.ForwardMessages({
         fromPeer: sourceChannelId,
         id: [message.id],
@@ -83,40 +72,33 @@ async function repostNextMedia(client) {
         dropAuthor: false,
         dropMediaCaptions: false,
         silent: false,
-        scheduleDate: undefined
       }));
-      console.log("✅ Mídia copiada com sucesso! (Emojis, links e formatação preservados)");
+      console.log("✅ Mídia copiada com sucesso!");
     } catch (copyError) {
-      console.log("❌ CopyMessage falhou, tentando sendMessage como fallback...");
-      
-      // FALLBACK: sendMessage com entidades
+      console.log("❌ CopyMessage falhou, tentando fallback...");
+
       try {
         const messageParams = {
           file: media,
           message: caption || ""
         };
 
-        // Adiciona entidades apenas se existirem
         if (entities && entities.length > 0) {
           messageParams.entities = entities;
-          console.log(`Preservando formatação com ${entities.length} entidades`);
-        } else {
-          console.log("Nenhuma entidade encontrada - enviando texto simples");
         }
 
         await client.sendMessage(destinationChannelId, messageParams);
-        console.log("✅ Mídia enviada com sendMessage (formatação parcial)!");
+        console.log("✅ Mídia enviada via sendMessage!");
       } catch (sendError) {
-        console.error("❌ Todos os métodos falharam:", sendError.message);
+        console.error("❌ Falha total:", sendError.message);
         throw sendError;
       }
     }
-    
-    // Salva o ID da mensagem para continuar de onde parou na próxima vez
+
     fs.writeFileSync(lastMessageIdFile, message.id.toString());
 
   } catch (error) {
-    console.error("Ocorreu um erro:", error);
+    console.error("Erro no repost:", error);
   }
 }
 
