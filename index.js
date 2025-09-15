@@ -9,7 +9,7 @@ const apiHash = '1d7a0af6fbdafe916ac803e444bc2100'; // Seu api_hash
 // Usa a StringSession que você vai salvar no Railway
 const stringSession = new StringSession(process.env.STRING_SESSION);
 
-// Configuração dos 3 pares de canais
+// Configuração dos 4 pares de canais
 const channelPairs = [
   {
     source: parseInt(process.env.SOURCE_CHANNEL_1),
@@ -25,6 +25,11 @@ const channelPairs = [
     source: parseInt(process.env.SOURCE_CHANNEL_3),
     destination: parseInt(process.env.DESTINATION_CHANNEL_3),
     lastMessageFile: 'last_message_id_pair_3.txt'
+  },
+  {
+    source: parseInt(process.env.SOURCE_CHANNEL_4),
+    destination: parseInt(process.env.DESTINATION_CHANNEL_4),
+    lastMessageFile: 'last_message_id_pair_4.txt'
   }
 ];
 
