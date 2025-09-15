@@ -9,11 +9,24 @@ const apiHash = '1d7a0af6fbdafe916ac803e444bc2100'; // Seu api_hash
 // Usa a StringSession que você vai salvar no Railway
 const stringSession = new StringSession(process.env.STRING_SESSION);
 
-// IDs dos canais
-const sourceChannelId = -1002631368556; // ID do canal de origem
-const destinationChannelId = -1002258297029; // ID do canal de destino
-
-const lastMessageIdFile = 'last_message_id.txt';
+// Configuração dos 3 pares de canais
+const channelPairs = [
+  {
+    source: parseInt(process.env.SOURCE_CHANNEL_1),
+    destination: parseInt(process.env.DESTINATION_CHANNEL_1),
+    lastMessageFile: 'last_message_id_pair_1.txt'
+  },
+  {
+    source: parseInt(process.env.SOURCE_CHANNEL_2),
+    destination: parseInt(process.env.DESTINATION_CHANNEL_2),
+    lastMessageFile: 'last_message_id_pair_2.txt'
+  },
+  {
+    source: parseInt(process.env.SOURCE_CHANNEL_3),
+    destination: parseInt(process.env.DESTINATION_CHANNEL_3),
+    lastMessageFile: 'last_message_id_pair_3.txt'
+  }
+];
 
 async function main() {
   console.log("Conectando...");
@@ -24,30 +37,45 @@ async function main() {
   await client.start();
 
   console.log("✅ Conectado! O bot está rodando e vai repostar a cada 30 segundos.");
+  console.log(`📡 Configurado para ${channelPairs.length} pares de canais:`);
+  channelPairs.forEach((pair, index) => {
+    console.log(`   Par ${index + 1}: ${pair.source} → ${pair.destination}`);
+  });
 
-  // Inicia o processo de repostagem
+  // Inicia o processo de repostagem para todos os pares
   setInterval(async () => {
-    await repostNextMedia(client);
+    await processAllChannelPairs(client);
   }, 30 * 1000); // 30 segundos (ajuste se quiser mais tempo)
 }
 
-async function repostNextMedia(client) {
+async function processAllChannelPairs(client) {
+  console.log("🔄 Processando todos os pares de canais...");
+  
+  // Processa cada par de canais em paralelo
+  const promises = channelPairs.map((pair, index) => 
+    repostNextMedia(client, pair, index + 1)
+  );
+  
+  await Promise.allSettled(promises);
+}
+
+async function repostNextMedia(client, channelPair, pairNumber) {
   try {
     let lastProcessedId = 999999999;
-    if (fs.existsSync(lastMessageIdFile)) {
-      const fileContent = fs.readFileSync(lastMessageIdFile, 'utf8');
+    if (fs.existsSync(channelPair.lastMessageFile)) {
+      const fileContent = fs.readFileSync(channelPair.lastMessageFile, 'utf8');
       if (fileContent) {
         lastProcessedId = parseInt(fileContent);
       }
     }
 
-    const messages = await client.getMessages(sourceChannelId, {
+    const messages = await client.getMessages(channelPair.source, {
       limit: 1,
       maxId: lastProcessedId - 1
     });
 
     if (messages.length === 0) {
-      console.log("Não há mais mídias para repostar.");
+      console.log(`📭 Par ${pairNumber}: Não há mais mídias para repostar.`);
       return;
     }
 
@@ -57,25 +85,26 @@ async function repostNextMedia(client) {
     const entities = message.entities || [];
 
     if (!media) {
-      console.log("Mensagem sem mídia, pulando...");
-      fs.writeFileSync(lastMessageIdFile, message.id.toString());
+      console.log(`📝 Par ${pairNumber}: Mensagem sem mídia, pulando...`);
+      fs.writeFileSync(channelPair.lastMessageFile, message.id.toString());
       return;
     }
 
+    console.log(`📤 Par ${pairNumber}: Repostando mídia ID ${message.id} de ${channelPair.source} para ${channelPair.destination}...`);
+
     // Tenta copiar a mensagem com formatação
     try {
-      console.log("Copiando mensagem...");
       await client.invoke(new Api.messages.ForwardMessages({
-        fromPeer: sourceChannelId,
+        fromPeer: channelPair.source,
         id: [message.id],
-        toPeer: destinationChannelId,
+        toPeer: channelPair.destination,
         dropAuthor: false,
         dropMediaCaptions: false,
         silent: false,
       }));
-      console.log("✅ Mídia copiada com sucesso!");
+      console.log(`✅ Par ${pairNumber}: Mídia copiada com sucesso!`);
     } catch (copyError) {
-      console.log("❌ CopyMessage falhou, tentando fallback...");
+      console.log(`⚠️ Par ${pairNumber}: ForwardMessages falhou, tentando fallback...`);
 
       try {
         const messageParams = {
@@ -87,18 +116,18 @@ async function repostNextMedia(client) {
           messageParams.entities = entities;
         }
 
-        await client.sendMessage(destinationChannelId, messageParams);
-        console.log("✅ Mídia enviada via sendMessage!");
+        await client.sendMessage(channelPair.destination, messageParams);
+        console.log(`✅ Par ${pairNumber}: Mídia enviada via sendMessage!`);
       } catch (sendError) {
-        console.error("❌ Falha total:", sendError.message);
+        console.error(`❌ Par ${pairNumber}: Falha total:`, sendError.message);
         throw sendError;
       }
     }
 
-    fs.writeFileSync(lastMessageIdFile, message.id.toString());
+    fs.writeFileSync(channelPair.lastMessageFile, message.id.toString());
 
   } catch (error) {
-    console.error("Erro no repost:", error);
+    console.error(`❌ Par ${pairNumber}: Erro no repost:`, error.message);
   }
 }
 
