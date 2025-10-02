@@ -1,0 +1,19 @@
+{
+  "name": "autopost",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "generate:session": "node generate_session.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "input": "^1.0.1",
+    "telegram": "^2.26.22"
+  },
+  "devDependencies": {},
+  "description": ""
+}
