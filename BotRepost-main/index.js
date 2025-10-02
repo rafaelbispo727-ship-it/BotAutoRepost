@@ -1,7 +1,8 @@
 const { Api, TelegramClient } = require('telegram');
 const { StringSession } = require('telegram/sessions');
 const fs = require('fs');
-
+//papa
+//Aqruivo do matcheka
 // Substitua com suas credenciais
 const apiId = 28954082; // Seu api_id
 const apiHash = '8644e104f56f78dcb35d26e76aa78387'; // Seu api_hash
