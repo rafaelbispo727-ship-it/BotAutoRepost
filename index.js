@@ -3,8 +3,8 @@ const { StringSession } = require('telegram/sessions');
 const fs = require('fs');
 
 // Substitua com suas credenciais
-const apiId = 21117228; // Seu api_id
-const apiHash = '1d7a0af6fbdafe916ac803e444bc2100'; // Seu api_hash
+const apiId = 28954082; // Seu api_id
+const apiHash = '8644e104f56f78dcb35d26e76aa78387'; // Seu api_hash
 
 // Usa a StringSession que você vai salvar no Railway
 const stringSession = new StringSession(process.env.STRING_SESSION);
@@ -50,7 +50,7 @@ async function main() {
   // Inicia o processo de repostagem para todos os pares
   setInterval(async () => {
     await processAllChannelPairs(client);
-  }, 30 * 1000); // 30 segundos (ajuste se quiser mais tempo)
+  }, 30 * 60 * 1000); // 30 segundos (ajuste se quiser mais tempo)
 }
 
 async function processAllChannelPairs(client) {
